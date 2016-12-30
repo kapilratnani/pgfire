@@ -1,0 +1,11 @@
+pgfire
+======
+A firebase like database with postgresql storage backend leveraging postgresql's
+jsonb datatype.
+
+v0.1 features
+-------------
+1. Simple get and set data to/from a path
+2. notify changes on data as a whole not a path
+3. REST API
+4. Notification using EventSource/SSE

@@ -1,0 +1,7 @@
+{
+  "db":{
+    "host":"localhost",
+    "port":"5172",
+    "db":"pgfire"
+  }
+}
