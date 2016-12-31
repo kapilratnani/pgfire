@@ -1,7 +1,9 @@
 {
   "db":{
     "host":"localhost",
-    "port":"5172",
-    "db":"pgfire"
+    "port":"5432",
+    "username":"postgres",
+    "password":"123456",
+    "db":"test_pgfire"
   }
 }
