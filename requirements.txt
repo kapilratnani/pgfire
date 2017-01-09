@@ -1,2 +1,5 @@
 Werkzeug
 psycopg2
+sqlalchemy
+alembic
+numpy

@@ -1,0 +1,4 @@
+create app
+each app has only one database
+database is one JSON document
+data can be read and written at any level in the hierarchy of the document
