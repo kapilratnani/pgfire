@@ -1,4 +1,3 @@
-Werkzeug
 psycopg2
 sqlalchemy
 alembic
