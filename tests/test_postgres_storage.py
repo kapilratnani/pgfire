@@ -11,7 +11,7 @@ def get_tainted_db_settings():
     return {
         "db": TEST_DB_NAME,
         "username": "postgres",
-        "port": 5432,
+        "port": 5434,
         "password": "123456",
         "host": "localhost"
     }
@@ -160,6 +160,7 @@ def test_simple_get_put_data_at_path():
         jsonDb1 = pgstorage.create_db(test_table_name1)
         # {"a":{"b":{"c":{"d":1}}}}
         jsonDb1.put('a/b/c', {'d': 1})
+
         assert jsonDb1.get('a/b/c') == {'d': 1}
         assert jsonDb1.get('a/b') == {'c': {'d': 1}}
 
@@ -187,6 +188,9 @@ def test_simple_get_put_data_at_path():
         jsonDb1.put("f/b", 1.05)
         assert jsonDb1.get("f/b") == 1.05
         assert jsonDb1.get("f/d") == 1.05
+
+        # {"a":{"b":{"c":{"d":1}}}, "d":1, "e":True, "f":{"d":1.05,"b":1.05}}
+        assert jsonDb1.get(None) == {"a":{"b":{"c":{"d":1}}}, "d":1, "e":True, "f":{"d":1.05,"b":1.05}}
 
 
 def test_get_put_post_patch_delete():

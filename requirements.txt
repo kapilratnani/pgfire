@@ -2,3 +2,7 @@ psycopg2
 sqlalchemy
 alembic
 numpy
+
+pytest
+requests
+sseclient

@@ -4,7 +4,7 @@ import os
 import psycopg2
 import sqlalchemy
 from sqlalchemy import exists
-from sqlalchemy.orm import Session
+
 from sqlalchemy.schema import DDL
 
 from .models import *
@@ -159,15 +159,21 @@ class PostgresJsonStorage(BaseJsonStorage):
         session = self.session
         cls = get_json_db_cls(db_name)
 
-        if not path:
+        if path is None:
             # return all data
-            pass
+            return self.get_all_data(cls, session)
 
         l1_key, path_query, _ = _build_path_query(path)
         if not path_query:
             raise ValueError("Invalid path")
 
         return session.query(cls.data[path_query]).filter(cls.l1_key == l1_key).scalar()
+
+    def get_all_data(self, cls, session):
+        all_data = {}
+        for row in session.query(cls.data).all():
+            all_data.update(row[0])
+        return all_data
 
     def delete_db(self, db_name: str) -> bool:
         self.__check_closed()
