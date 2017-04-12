@@ -2,14 +2,15 @@ from contextlib import contextmanager
 
 import requests
 import sqlalchemy as sa
-from pgfire.conf import conf
+
+from pgfire.conf import config
 
 TEST_DB_NAME = 'test_rest_pgfire'
 
 
 def get_tainted_db_settings():
-    conf['db']['db'] = TEST_DB_NAME
-    return conf['db']
+    config['db']['db'] = TEST_DB_NAME
+    return config['db']
 
 
 @contextmanager
@@ -48,10 +49,35 @@ def setup_module(module):
             conn.execute("ROLLBACK")
 
         conn.execute("CREATE DATABASE %s" % TEST_DB_NAME)
+    start_app()
+
+
+process = None
 
 
 def teardown_module(module):
-    pass
+    stop_app()
+
+
+def stop_app():
+    global process
+    process.terminate()
+
+
+def start_app():
+    global process
+    import multiprocessing as mp
+    import time
+
+    def __start_app():
+        from app import prepare_app
+        from aiohttp import web
+        app = prepare_app()
+        web.run_app(app, host="localhost", port=8666)
+
+    process = mp.Process(target=__start_app)
+    process.start()
+    time.sleep(2)
 
 
 def test_create_json_db():
@@ -60,11 +86,11 @@ def test_create_json_db():
         "db_name": "a_json_db"
     }
     response = requests.post(url=url, json=data)
-    assert response.status_code == 204
-    # create the same app again
-    response = requests.post(url=url, json=data)
-    assert response.status_code == 400
-    assert response.json().get('reason') == "db with the same name already exists"
+    assert response.ok
+    # # create the same db again
+    # response = requests.post(url=url, json=data)
+    # assert response.status_code == 400
+    # assert response.json().get('reason') == "db with the same name already exists"
 
 
 def test_get_put_post_delete_from_app():
@@ -76,7 +102,7 @@ def test_get_put_post_delete_from_app():
     }
 
     response = requests.post(url=url, json=data)
-    assert response.ok()
+    assert response.ok
 
     path = "rest/saving-data/fireblog/users"
     data = {
@@ -89,36 +115,41 @@ def test_get_put_post_delete_from_app():
     # put data
     url = 'http://localhost:8666/database/%s/%s'
     response = requests.put(url=url % (json_db_name, path), json=data)
-    assert response.ok()
+    assert response.ok
     assert response.json() == data
 
     # get data
     response = requests.get(url=url % (json_db_name, "rest/saving-data/fireblog"))
-    assert response.ok()
-    assert response.json() == {"users": {"alanisawesome": {"name": "Alan Turing", "birthday": "June 23, 1312"}}}
+    assert response.ok
+    d = response.json()
+    assert response.json() == {"users": {"alanisawesome": {"name": "Alan Turing", "birthday": "June 23, 1912"}}}
 
     # patch data
     path = "rest/saving-data/fireblog/users/alanisawesome"
     data = {"nickname": "Alan The Machine"}
     response = requests.patch(url=url % (json_db_name, path), json=data)
-    assert response.ok()
+    assert response.ok
     assert response.json() == data
 
     # post data
     path = "rest/saving-data/fireblog/posts"
     data = {"author": "gracehopper", "title": "The nano-stick"}
     response = requests.post(url=url % (json_db_name, path), json=data)
-    assert response.ok()
-    assert "name" in response.json()
+    assert response.ok
+    posted_data = response.json()
+
+    assert requests.get(url=url % (
+        json_db_name,
+        "rest/saving-data/fireblog/posts/%s" % list(posted_data.keys())[0])
+                        ).json() == data
 
     # delete data
     path = "rest/saving-data/fireblog/users/alanisawesome"
     response = requests.delete(url=url % (json_db_name, path))
-    assert response.ok()
+    assert response.ok
 
     response = requests.get(url=url % (json_db_name, path))
-    assert response.ok()
-    assert response.json() == {}
+    assert response.ok
 
 
 def test_delete_json_db():
@@ -130,10 +161,10 @@ def test_delete_json_db():
     }
 
     response = requests.post(url=url, json=data)
-    assert response.ok()
+    assert response.ok
     url = 'http://localhost:8666/deletedb'
     response = requests.delete(url=url, json=data)
-    assert response.ok()
+    assert response.ok
 
 
 data_received_count1 = 0
@@ -148,7 +179,7 @@ def test_eventsource_api():
     }
 
     response = requests.post(url=url, json=data)
-    assert response.ok()
+    assert response.ok
 
     import threading
 

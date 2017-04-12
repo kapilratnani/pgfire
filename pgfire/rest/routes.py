@@ -5,11 +5,12 @@ from .api import *
 
 routes = [
     # ('path', handler, 'http_method')
-    (r'/createdb', createdb, 'POST'),
-    (r'/deletedb', deletedb, 'DELETE'),
-    (r'/database/{dbname:[a-z0-9_\-]+}/{op_path:.*?}', dbput, 'PUT'),
-    (r'/database/{dbname:[a-z0-9_\-]+}/{op_path:.*?}', dbget, 'GET'),
-    (r'/database/{dbname:[a-z0-9_\-]+}/{op_path:.*?}', dbpost, 'POST'),
-    (r'/database/{dbname:[a-z0-9_\-]+}/{op_path:.*?}', dbdel, 'DELETE'),
-    (r'/database/{dbname:[a-z0-9_\-]+}/{op_path:.*?}', dbhead, 'HEAD'),
+    (r'/createdb', create_db, 'POST'),
+    (r'/deletedb', delete_db, 'DELETE'),
+    (r'/database/{db_name:[a-z0-9_\-]+}/{op_path:.*?}', db_put, 'PUT'),
+    (r'/database/{db_name:[a-z0-9_\-]+}/{op_path:.*?}', db_get, 'GET'),
+    (r'/database/{db_name:[a-z0-9_\-]+}/{op_path:.*?}', db_post, 'POST'),
+    (r'/database/{db_name:[a-z0-9_\-]+}/{op_path:.*?}', db_del, 'DELETE'),
+    (r'/database/{db_name:[a-z0-9_\-]+}/{op_path:.*?}', db_patch, 'PATCH'),
+    (r'/database/{db_name:[a-z0-9_\-]+}/{op_path:.*?}', db_head, 'HEAD'),
 ]

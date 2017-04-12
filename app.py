@@ -1,7 +1,7 @@
 """
     REST app
 """
-
+import argparse
 from aiohttp import web
 
 
@@ -30,13 +30,17 @@ def setup_routes(app):
 
 
 def prepare_app():
-    a = web.Application()
-    setup_config(a)
-    a.on_startup.append(setup_storage)
-    a.on_cleanup.append(close_storage)
-    setup_routes(a)
-    return a
+    _app = web.Application()
+    setup_config(_app)
+    _app.on_startup.append(setup_storage)
+    _app.on_cleanup.append(close_storage)
+    setup_routes(_app)
+    return _app
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="aiohttp server example")
+    parser.add_argument('--host', default='localhost')
+    parser.add_argument('--port', default=8666)
+    args = parser.parse_args()
     app = prepare_app()
-    web.run_app(app)
+    web.run_app(app, host=args.host, port=args.port)
