@@ -1,8 +1,9 @@
 psycopg2
 sqlalchemy
-alembic
 numpy
-
+aiohttp
+aiohttp-sse
+# test requirements
 pytest
 requests
 sseclient
