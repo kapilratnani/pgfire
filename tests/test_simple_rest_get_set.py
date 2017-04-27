@@ -62,6 +62,7 @@ def teardown_module(module):
 def stop_app():
     global process
     process.terminate()
+    process.join()
 
 
 def start_app():
@@ -172,7 +173,7 @@ data_received_count1 = 0
 
 def test_eventsource_api():
     # create json db
-    json_db_name = "a_json_db_2"
+    json_db_name = "a_json_db_3"
     url = 'http://localhost:8666/createdb'
     data = {
         "db_name": json_db_name
@@ -183,18 +184,19 @@ def test_eventsource_api():
 
     import threading
 
+    url_event = 'http://localhost:8666/database_events/%s/%s'
     url = 'http://localhost:8666/database/%s/%s'
     post_data1 = {"t": 1}
     post_data2 = {"t": 2}
     listen_path = 'rest/saving-data/fireblog1/posts'
+    from sseclient import SSEClient
+    sse = SSEClient(url_event % (json_db_name, listen_path))
 
     def message_listener():
         global data_received_count1
-        from sseclient import SSEClient
-        sse = SSEClient(url % (json_db_name, listen_path))
         for msg in sse:
             data_received_count1 += 1
-            print(msg)
+            print("SSE:" + str(msg))
 
     thr = threading.Thread(target=message_listener)
     thr.setDaemon(True)
@@ -202,9 +204,9 @@ def test_eventsource_api():
 
     # write data
     import time
+    time.sleep(5)
     requests.post(url=url % (json_db_name, listen_path), json=post_data1)
     requests.post(url=url % (json_db_name, listen_path), json=post_data2)
 
-    time.sleep(1)
-
+    time.sleep(5)
     assert data_received_count1 == 2

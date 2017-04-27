@@ -2,6 +2,7 @@ import threading
 from contextlib import contextmanager
 
 import sqlalchemy as sa
+
 from pgfire.engine.storage.postgres import PostgresJsonStorage, BaseJsonDb
 
 TEST_DB_NAME = 'test_pgfire'
@@ -190,7 +191,7 @@ def test_simple_get_put_data_at_path():
         assert jsonDb1.get("f/d") == 1.05
 
         # {"a":{"b":{"c":{"d":1}}}, "d":1, "e":True, "f":{"d":1.05,"b":1.05}}
-        assert jsonDb1.get(None) == {"a":{"b":{"c":{"d":1}}}, "d":1, "e":True, "f":{"d":1.05,"b":1.05}}
+        assert jsonDb1.get(None) == {"a": {"b": {"c": {"d": 1}}}, "d": 1, "e": True, "f": {"d": 1.05, "b": 1.05}}
 
 
 def test_get_put_post_patch_delete():
@@ -253,8 +254,8 @@ def test_change_notification():
     test_db_name = "test_db_fb"
     db_settings = get_tainted_db_settings()
     with PostgresJsonStorage(db_settings) as pg_storage:
-        notifier = pg_storage.get_notifier(test_db_name)
-        message_stream = notifier.listen('rest/saving-data/fireblog1/posts')
+        notifier = pg_storage.get_notifier(test_db_name, 'rest/saving-data/fireblog1/posts')
+        message_stream = notifier.listen()
 
         post_data1 = {"t": 1}
         post_data2 = {"t": 2}
@@ -262,6 +263,8 @@ def test_change_notification():
         def message_listener():
             global data_received_count1
             for data in message_stream:
+                if data is None:
+                    continue
                 data_received_count1 += 1
                 assert data['event'] == 'put'
                 assert data['path'].startswith("rest/saving-data/fireblog1/posts")
@@ -277,7 +280,6 @@ def test_change_notification():
         json_db.post('rest/saving-data/fireblog1/posts', post_data2)
         time.sleep(1)
 
-        notifier.hangup('rest/saving-data/fireblog1/posts')
         notifier.cleanup()
 
         assert data_received_count1 == 2
@@ -291,8 +293,8 @@ def test_change_notification2():
     test_db_name = "test_db_fb"
     db_settings = get_tainted_db_settings()
     with PostgresJsonStorage(db_settings) as pg_storage:
-        notifier = pg_storage.get_notifier(test_db_name)
-        message_stream = notifier.listen('rest/saving-data/fireblog2/posts')
+        notifier = pg_storage.get_notifier(test_db_name, 'rest/saving-data/fireblog2/posts')
+        message_stream = notifier.listen()
 
         post_data1 = {"t": 1}
         post_data2 = {"t": 2}
@@ -300,6 +302,8 @@ def test_change_notification2():
         def message_listener():
             global data_received_count2
             for data in message_stream:
+                if data is None:
+                    continue
                 data_received_count2 += 1
                 assert data['event'] == 'put'
                 assert data['path'].startswith("rest/saving-data/fireblog2/posts")
@@ -314,9 +318,8 @@ def test_change_notification2():
         json_db.post('rest/saving-data/fireblog2/posts', post_data1)
         json_db.post('rest/saving-data/fireblog2/messages', post_data2)
 
-        time.sleep(1)
+        time.sleep(2)
 
-        notifier.hangup('rest/saving-data/fireblog2/posts')
         notifier.cleanup()
 
         assert data_received_count2 == 1
