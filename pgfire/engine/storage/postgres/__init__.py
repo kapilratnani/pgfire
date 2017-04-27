@@ -1,10 +1,11 @@
 import json
 import os
+import queue
 
 import psycopg2
 import sqlalchemy
 from sqlalchemy import exists
-
+from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import DDL
 
 from .models import *
@@ -206,8 +207,8 @@ class PostgresJsonStorage(BaseJsonStorage):
                                 port=self.storage_settings['port']
                                 )
 
-    def get_notifier(self, db_name: str) -> BaseJsonChangeNotifier:
-        notifier = ThreadSafeJsonChangeNotifier(db_name, self.__new_pg_connection())
+    def get_notifier(self, db_name: str, path: str) -> BaseJsonChangeNotifier:
+        notifier = ThreadSafeJsonChangeNotifier(db_name, path, self.__new_pg_connection())
         self.notifiers.append(notifier)
         return notifier
 
@@ -225,29 +226,33 @@ class PostgresJsonStorage(BaseJsonStorage):
 
 def queue_to_generator(q):
     while True:
-        data = q.get()
-        if data is None:
-            raise StopIteration()
-        q.task_done()
-        yield data
+        try:
+            data = q.get_nowait()
+            if data is None:
+                raise StopIteration()
+            q.task_done()
+            yield data
+        except queue.Empty:
+            yield None
 
 
 def path_filter(path, gen):
     for payload in gen:
-        if payload['path'].startswith(path):
-            yield payload
+        if payload:
+            if payload['path'].startswith(path):
+                yield payload
+            else:
+                continue
         else:
-            continue
+            yield payload
 
 
 class ThreadSafeJsonChangeNotifier(BaseJsonChangeNotifier):
-    def __init__(self, db_name: str, conn):
-        import queue
-        super().__init__(db_name)
+    def __init__(self, db_name: str, path: str, conn):
+        super().__init__(db_name, path)
         self.conn = conn
         self.listen_thread = None  # type : threading.Thread
         self.__thread_kill = False
-        self.paths_to_listen = []
         self.message_queue = queue.Queue()
 
     def __prepare_listen_thread(self):
@@ -286,22 +291,26 @@ class ThreadSafeJsonChangeNotifier(BaseJsonChangeNotifier):
             self.__thread_kill = True
             self.listen_thread.join()
 
-    def hangup(self, path: str):
-        self.paths_to_listen.remove(path)
-        if len(self.paths_to_listen) == 0:
-            self.cleanup()
-
-    def listen(self, path: str):
+    def listen(self):
+        print("start notification thread for path:%s" % self.path)
         self.__prepare_listen_thread()
-        self.paths_to_listen.append(path)
-        return path_filter(path, queue_to_generator(self.message_queue))
+        print("Thread id:%s" % self.listen_thread.ident)
+        return path_filter(self.path, queue_to_generator(self.message_queue))
 
     def cleanup(self):
+        print("stop notification thread for path:%s" % self.path)
+        print("Thread id:%s" % self.listen_thread.ident)
         self.__close_listen_thread()
         self.conn.close()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+        self.cleanup()
 
     def __enter__(self):
-        pass
+        return self
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()

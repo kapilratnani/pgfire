@@ -1,4 +1,8 @@
+import asyncio
+import json
+
 from aiohttp import web
+from aiohttp_sse import sse_response
 
 
 async def create_db(request: web.Request):
@@ -28,9 +32,24 @@ async def db_put(request: web.Request):
 async def db_get(request: web.Request):
     storage = request.app['storage']
     db_name = request.match_info['db_name']
-    path = request.match_info['op_path']
+    path = request.match_info.get('op_path')
     json_db = storage.get_db(db_name)
     return web.json_response(data=json_db.get(path))
+
+
+async def db_sse_get(request: web.Request):
+    storage = request.app['storage']
+    db_name = request.match_info['db_name']
+    path = request.match_info.get('op_path')
+    response = await sse_response(request)
+    notifier = storage.get_notifier(db_name, path)
+    async with response, notifier:
+        stream = notifier.listen()
+        while True:
+            d = next(stream)
+            if d:
+                response.send(json.dumps(d))
+            await asyncio.sleep(0)
 
 
 async def db_patch(request: web.Request):

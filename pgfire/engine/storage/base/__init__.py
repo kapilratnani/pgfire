@@ -1,9 +1,10 @@
 from typing import Union, List
+
 from ..utils import PushID
 
 post_push_id = PushID()
 
-JSON_PRIMITIVES = Union[int, float, bool, dict, str]
+JSON_PRIMITIVES = Union[int, float, bool, dict, str, None]
 
 
 class BaseJsonDb(object):
@@ -15,7 +16,7 @@ class BaseJsonDb(object):
         self.db_name = db_name
         self.storage = storage
 
-    def get(self, path: str) -> JSON_PRIMITIVES:
+    def get(self, path: str = None) -> JSON_PRIMITIVES:
         return self.storage.get_from_path(self.db_name, path)
 
     def put(self, path: str, value: JSON_PRIMITIVES) -> JSON_PRIMITIVES:
@@ -36,8 +37,9 @@ class BaseJsonChangeNotifier(object):
         Represents the notification infra, implemented by underlying storage
     """
 
-    def __init__(self, db_name: str):
+    def __init__(self, db_name: str, path: str):
         self.db = db_name
+        self.path = path
 
     def __enter__(self):
         raise NotImplementedError()
@@ -45,10 +47,13 @@ class BaseJsonChangeNotifier(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         raise NotImplementedError()
 
-    def listen(self, path: str):
+    async def __aenter__(self):
         raise NotImplementedError()
 
-    def hangup(self, path: str):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        raise NotImplementedError()
+
+    def listen(self):
         raise NotImplementedError()
 
     def cleanup(self):
@@ -107,7 +112,7 @@ class BaseJsonStorage(object):
     def get_db(self, db_name: str) -> BaseJsonDb:
         raise NotImplementedError()
 
-    def get_notifier(self, db_name: str) -> BaseJsonChangeNotifier:
+    def get_notifier(self, db_name: str, path: str) -> BaseJsonChangeNotifier:
         raise NotImplementedError()
 
     def get_all_dbs(self) -> List[str]:
