@@ -14,7 +14,7 @@ from ..utils import read_file
 
 UPSERT_FUNCTION_FILE = os.path.join(os.path.dirname(__file__), 'upsert_json_data_notify.sql')
 PATCH_FUNCTION_FILE = os.path.join(os.path.dirname(__file__), "patch_json_data_notify.sql")
-JSONB_DEEP_SET_FUNCTION_FILE = os.path.join(os.path.dirname(__file__), "jsonb_deep_set.sql")
+JSONB_DEEP_SET_FUNCTION_FILE = os.path.join(os.path.dirname(__file__), "jsonb_set_deep.sql")
 
 
 def _build_path_query(path):

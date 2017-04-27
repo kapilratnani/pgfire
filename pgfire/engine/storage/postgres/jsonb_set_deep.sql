@@ -5,6 +5,7 @@ CREATE OR REPLACE FUNCTION jsonb_set_deep(target jsonb, path text[], val jsonb)
       k text;
       p text[];
     BEGIN
+      target = coalesce(target, '{}'::jsonb);
       -- Create missing objects in the path.
       FOREACH k IN ARRAY path LOOP
         p := p || k;
