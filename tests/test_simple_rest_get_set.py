@@ -2,6 +2,7 @@ from contextlib import contextmanager
 
 import requests
 import sqlalchemy as sa
+from sqlalchemy import exc
 
 from pgfire.conf import config
 
@@ -16,16 +17,16 @@ def get_tainted_db_settings():
 @contextmanager
 def db_connection(db_name=TEST_DB_NAME):
     # init module variables
-    DB_PROPS = get_tainted_db_settings()
-    DB_HOST = DB_PROPS.get("host")
-    DB_PORT = DB_PROPS.get("port")
-    DB_USER = DB_PROPS.get("username")
-    DB_PASSWORD = DB_PROPS.get("password")
+    db_props = get_tainted_db_settings()
+    db_host = db_props.get("host")
+    db_port = db_props.get("port")
+    db_user = db_props.get("username")
+    db_password = db_props.get("password")
 
-    connection_string = 'postgresql+psycopg2://{}:{}@{}:{}/{}'.format(DB_USER,
-                                                                      DB_PASSWORD,
-                                                                      DB_HOST,
-                                                                      DB_PORT,
+    connection_string = 'postgresql+psycopg2://{}:{}@{}:{}/{}'.format(db_user,
+                                                                      db_password,
+                                                                      db_host,
+                                                                      db_port,
                                                                       db_name)
 
     engine = sa.create_engine(connection_string)

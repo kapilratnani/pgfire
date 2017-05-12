@@ -2,6 +2,7 @@ import threading
 from contextlib import contextmanager
 
 import sqlalchemy as sa
+from sqlalchemy import exc
 
 from pgfire.engine.storage.postgres import PostgresJsonStorage, BaseJsonDb
 
@@ -21,16 +22,16 @@ def get_tainted_db_settings():
 @contextmanager
 def db_connection(db_name=TEST_DB_NAME):
     # init module variables
-    DB_PROPS = get_tainted_db_settings()
-    DB_HOST = DB_PROPS.get("host")
-    DB_PORT = DB_PROPS.get("port")
-    DB_USER = DB_PROPS.get("username")
-    DB_PASSWORD = DB_PROPS.get("password")
+    dp_props = get_tainted_db_settings()
+    db_host = dp_props.get("host")
+    db_port = dp_props.get("port")
+    db_user = dp_props.get("username")
+    db_password = dp_props.get("password")
 
-    connection_string = 'postgresql+psycopg2://{}:{}@{}:{}/{}'.format(DB_USER,
-                                                                      DB_PASSWORD,
-                                                                      DB_HOST,
-                                                                      DB_PORT,
+    connection_string = 'postgresql+psycopg2://{}:{}@{}:{}/{}'.format(db_user,
+                                                                      db_password,
+                                                                      db_host,
+                                                                      db_port,
                                                                       db_name)
 
     engine = sa.create_engine(connection_string)
@@ -86,9 +87,9 @@ def test_create_db():
     test_table_name = "test_db1"
     db_settings = get_tainted_db_settings()
     pgstorage = PostgresJsonStorage(db_settings)
-    jsonDb = pgstorage.create_db(test_table_name)
-    assert jsonDb
-    assert isinstance(jsonDb, BaseJsonDb)
+    json_db = pgstorage.create_db(test_table_name)
+    assert json_db
+    assert isinstance(json_db, BaseJsonDb)
 
     data = None
     with db_connection() as con:
@@ -109,8 +110,8 @@ def test_delete_db():
     test_table_name = "test_db2"
     db_settings = get_tainted_db_settings()
     pgstorage = PostgresJsonStorage(db_settings)
-    jsonDb = pgstorage.create_db(test_table_name)
-    assert jsonDb and isinstance(jsonDb, BaseJsonDb)
+    json_db = pgstorage.create_db(test_table_name)
+    assert json_db and isinstance(json_db, BaseJsonDb)
     with db_connection() as con:
         result = con.execute("select * from information_schema.tables where table_name='%s'"
                              % test_table_name)
@@ -139,14 +140,14 @@ def test_get_all_dbs():
     db_settings = get_tainted_db_settings()
     pgstorage = PostgresJsonStorage(db_settings)
     with pgstorage:
-        jsonDb1 = pgstorage.create_db(test_table_name1)
-        assert jsonDb1 and isinstance(jsonDb1, BaseJsonDb)
+        json_db1 = pgstorage.create_db(test_table_name1)
+        assert json_db1 and isinstance(json_db1, BaseJsonDb)
 
-        jsonDb2 = pgstorage.create_db(test_table_name2)
-        assert jsonDb2 and isinstance(jsonDb2, BaseJsonDb)
+        json_db2 = pgstorage.create_db(test_table_name2)
+        assert json_db2 and isinstance(json_db2, BaseJsonDb)
         dbs = pgstorage.get_all_dbs()
-        assert jsonDb1.db_name in dbs
-        assert jsonDb2.db_name in dbs
+        assert json_db1.db_name in dbs
+        assert json_db2.db_name in dbs
 
 
 def test_simple_get_put_data_at_path():
@@ -158,78 +159,83 @@ def test_simple_get_put_data_at_path():
     db_settings = get_tainted_db_settings()
     pgstorage = PostgresJsonStorage(db_settings)
     with pgstorage:
-        jsonDb1 = pgstorage.create_db(test_table_name1)
+        json_db1 = pgstorage.create_db(test_table_name1)
         # {"a":{"b":{"c":{"d":1}}}}
-        jsonDb1.put('a/b/c', {'d': 1})
+        json_db1.put('a/b/c', {'d': 1})
 
-        assert jsonDb1.get('a/b/c') == {'d': 1}
-        assert jsonDb1.get('a/b') == {'c': {'d': 1}}
+        assert json_db1.get('a/b/c') == {'d': 1}
+        assert json_db1.get('a/b') == {'c': {'d': 1}}
 
         # {"d": 1}
-        jsonDb1.put("d", 1)
-        assert jsonDb1.get("d") == 1
+        json_db1.put("d", 1)
+        assert json_db1.get("d") == 1
 
         # {"e": True}
-        jsonDb1.put("e", True)
-        assert jsonDb1.get("e")
+        json_db1.put("e", True)
+        assert json_db1.get("e")
 
         # {"f":0.01}
-        jsonDb1.put("f", 0.01)
-        assert jsonDb1.get("f") == 0.01
+        json_db1.put("f", 0.01)
+        assert json_db1.get("f") == 0.01
 
         # {"f":{"b":{"c":1.05}}}
-        jsonDb1.put("f/b/c", 1.05)
-        assert jsonDb1.get("f/b") == {"c": 1.05}
+        json_db1.put("f/b/c", 1.05)
+        assert json_db1.get("f/b") == {"c": 1.05}
 
         # {"f":{"b":{"c":1.05}, "d":1.05}}
-        jsonDb1.put("f/d", 1.05)
-        assert jsonDb1.get("f/d") == 1.05
+        json_db1.put("f/d", 1.05)
+        assert json_db1.get("f/d") == 1.05
 
         # {"f":{"b":1.05, "d":1.05}}
-        jsonDb1.put("f/b", 1.05)
-        assert jsonDb1.get("f/b") == 1.05
-        assert jsonDb1.get("f/d") == 1.05
+        json_db1.put("f/b", 1.05)
+        assert json_db1.get("f/b") == 1.05
+        assert json_db1.get("f/d") == 1.05
 
         # {"a":{"b":{"c":{"d":1}}}, "d":1, "e":True, "f":{"d":1.05,"b":1.05}}
-        assert jsonDb1.get(None) == {"a": {"b": {"c": {"d": 1}}}, "d": 1, "e": True, "f": {"d": 1.05, "b": 1.05}}
+        assert json_db1.get(None) == {"a": {"b": {"c": {"d": 1}}}, "d": 1, "e": True, "f": {"d": 1.05, "b": 1.05}}
 
 
 def test_get_put_post_patch_delete():
     test_db_name = "test_db_fb"
     db_settings = get_tainted_db_settings()
     with PostgresJsonStorage(db_settings) as pg_storage:
-        jsonDb = pg_storage.create_db(test_db_name)
-        jsonDb.put("rest/saving-data/fireblog/users", {
+        json_db = pg_storage.create_db(test_db_name)
+        json_db.put("rest/saving-data/fireblog/users", {
             "alanisawesome": {
                 "name": "Alan Turing",
                 "birthday": "June 23, 1912"
             }
         })
 
-        assert jsonDb.get("rest/saving-data/fireblog/users/alanisawesome") == {
+        assert json_db.get("rest/saving-data/fireblog/users/alanisawesome") == {
             "name": "Alan Turing", "birthday": "June 23, 1912"}
 
-        jsonDb.patch("rest/saving-data/fireblog/users/alanisawesome", {"nickname": "Alan The Machine"})
-        assert jsonDb.get("rest/saving-data/fireblog/users/alanisawesome") == {
+        json_db.patch("rest/saving-data/fireblog/users/alanisawesome", {"nickname": "Alan The Machine"})
+        assert json_db.get("rest/saving-data/fireblog/users/alanisawesome") == {
             "name": "Alan Turing", "birthday": "June 23, 1912", "nickname": "Alan The Machine"}
 
-        posted_data = jsonDb.post("rest/saving-data/fireblog/posts", {"author": "alanisawesome",
-                                                                      "title": "The Turing Machine"})
+        posted_data = json_db.post(
+            "rest/saving-data/fireblog/posts",
+            {"author": "alanisawesome", "title": "The Turing Machine"}
+        )
 
-        assert jsonDb.get("rest/saving-data/fireblog/posts/%s" % list(posted_data.keys())[0]) == {
+        assert json_db.get("rest/saving-data/fireblog/posts/%s" % list(posted_data.keys())[0]) == {
             "author": "alanisawesome",
             "title": "The Turing Machine"
         }
 
-        posted_data = jsonDb.post("rest/saving-data/fireblog/posts", {"author": "gracehopper",
-                                                                      "title": "The nano-stick"})
-        assert jsonDb.get("rest/saving-data/fireblog/posts/%s" % list(posted_data.keys())[0]) == {
+        posted_data = json_db.post(
+            "rest/saving-data/fireblog/posts",
+            {"author": "gracehopper", "title": "The nano-stick"}
+        )
+
+        assert json_db.get("rest/saving-data/fireblog/posts/%s" % list(posted_data.keys())[0]) == {
             "author": "gracehopper",
             "title": "The nano-stick"
         }
 
-        assert jsonDb.delete("rest/saving-data/fireblog/users/alanisawesome")
-        assert jsonDb.get("rest/saving-data/fireblog/users/alanisawesome") is None
+        assert json_db.delete("rest/saving-data/fireblog/users/alanisawesome")
+        assert json_db.get("rest/saving-data/fireblog/users/alanisawesome") is None
 
 
 def test_get_db():

@@ -42,20 +42,20 @@ class PushID(object):
 
     def next_id(self):
         now = int(time.time() * 1000)
-        duplicateTime = (now == self.lastPushTime)
+        duplicate_time = (now == self.lastPushTime)
         self.lastPushTime = now
-        timeStampChars = numpy.empty(8, dtype=str)
+        time_stamp_chars = numpy.empty(8, dtype=str)
 
         for i in range(7, -1, -1):
-            timeStampChars[i] = self.PUSH_CHARS[now % 64]
+            time_stamp_chars[i] = self.PUSH_CHARS[now % 64]
             now = int(now / 64)
 
         if now != 0:
             raise ValueError('We should have converted the entire timestamp.')
 
-        uid = ''.join(timeStampChars)
+        uid = ''.join(time_stamp_chars)
 
-        if not duplicateTime:
+        if not duplicate_time:
             for i in range(12):
                 self.lastRandChars[i] = int(random.random() * 64)
         else:

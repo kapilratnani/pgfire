@@ -162,7 +162,7 @@ class PostgresJsonStorage(BaseJsonStorage):
 
         if path is None:
             # return all data
-            return self.get_all_data(cls, session)
+            return self.__get_all_data(cls)
 
         l1_key, path_query, _ = _build_path_query(path)
         if not path_query:
@@ -170,9 +170,9 @@ class PostgresJsonStorage(BaseJsonStorage):
 
         return session.query(cls.data[path_query]).filter(cls.l1_key == l1_key).scalar()
 
-    def get_all_data(self, cls, session):
+    def __get_all_data(self, cls):
         all_data = {}
-        for row in session.query(cls.data).all():
+        for row in self.session.query(cls.data).all():
             all_data.update(row[0])
         return all_data
 

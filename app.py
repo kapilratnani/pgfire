@@ -42,5 +42,5 @@ if __name__ == "__main__":
     parser.add_argument('--host', default='localhost')
     parser.add_argument('--port', default=8666)
     args = parser.parse_args()
-    app = prepare_app()
-    web.run_app(app, host=args.host, port=args.port)
+    _app = prepare_app()
+    web.run_app(_app, host=args.host, port=args.port)
