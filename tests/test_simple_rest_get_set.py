@@ -67,7 +67,7 @@ def stop_app():
 
 def start_app():
     global process
-    import multiprocessing as mp
+    from multiprocessing import Process
     import time
 
     def __start_app():
@@ -76,7 +76,7 @@ def start_app():
         app = prepare_app()
         web.run_app(app, host="localhost", port=8666)
 
-    process = mp.Process(target=__start_app)
+    process = Process(target=__start_app)
     process.start()
     time.sleep(2)
 
@@ -186,9 +186,15 @@ def test_eventsource_api():
 
     url_event = 'http://localhost:8666/database_events/%s/%s'
     url = 'http://localhost:8666/database/%s/%s'
+
     post_data1 = {"t": 1}
     post_data2 = {"t": 2}
+    post_data3 = {"t": 3}
+
     listen_path = 'rest/saving-data/fireblog1/posts'
+
+    requests.post(url=url % (json_db_name, listen_path), json=post_data1)
+
     from sseclient import SSEClient
     sse = SSEClient(url_event % (json_db_name, listen_path))
 
@@ -205,8 +211,8 @@ def test_eventsource_api():
     # write data
     import time
     time.sleep(5)
-    requests.post(url=url % (json_db_name, listen_path), json=post_data1)
     requests.post(url=url % (json_db_name, listen_path), json=post_data2)
+    requests.post(url=url % (json_db_name, listen_path), json=post_data3)
 
     time.sleep(5)
-    assert data_received_count1 == 2
+    assert data_received_count1 == 3
