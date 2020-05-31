@@ -238,7 +238,7 @@ def queue_to_generator(q):
 
 def path_filter(path, gen):
     for payload in gen:
-        if payload:
+        if payload and path is not None:
             if payload['path'].startswith(path):
                 yield payload
             else:
