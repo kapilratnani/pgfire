@@ -82,11 +82,11 @@ Open two terminals
 | data: {"event": "put", "path": "blog/-M8eYCk1LLlWH-SwIkXi", "data": {"body": "some more blah blah...", "title": "another blog entry"}}                                        |                                                                                                                                                                                                                                     |
 
 
-# Todo
-[ ] Add user and role based access control
-[ ] Make a distributable package
-[ ] make a cli to create and manage databases
-[ ] Demo app 
-[ ] Performance tests
+## Todo
+- [ ] Add user and role based access control
+- [ ] Make a distributable package
+- [ ] make a cli to create and manage databases
+- [ ] Demo app 
+- [ ] Performance tests
 
 
