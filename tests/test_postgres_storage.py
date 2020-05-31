@@ -9,24 +9,24 @@ from pgfire.engine.storage.postgres import PostgresJsonStorage, BaseJsonDb
 TEST_DB_NAME = 'test_pgfire'
 
 
-def get_tainted_db_settings():
+def get_test_db_settings():
     return {
         "db": TEST_DB_NAME,
         "username": "postgres",
-        "port": 5434,
+        "port": 5432,
         "password": "123456",
         "host": "localhost"
     }
 
 
 @contextmanager
-def db_connection(db_name=TEST_DB_NAME):
+def db_connection(db_name=''):
     # init module variables
-    dp_props = get_tainted_db_settings()
-    db_host = dp_props.get("host")
-    db_port = dp_props.get("port")
-    db_user = dp_props.get("username")
-    db_password = dp_props.get("password")
+    db_props = get_test_db_settings()
+    db_host = db_props.get("host")
+    db_port = db_props.get("port")
+    db_user = db_props.get("username")
+    db_password = db_props.get("password")
 
     connection_string = 'postgresql+psycopg2://{}:{}@{}:{}/{}'.format(db_user,
                                                                       db_password,
@@ -42,7 +42,7 @@ def db_connection(db_name=TEST_DB_NAME):
 
 
 def setup_module(module):
-    with db_connection('') as conn:
+    with db_connection() as conn:
         conn = conn.execution_options(autocommit=False)
         conn.execute("ROLLBACK")
         try:
@@ -67,10 +67,10 @@ def test_pgstorage_init():
     :return:
     """
     meta_table_name = "storage_meta"
-    db_settings = get_tainted_db_settings()
+    db_settings = get_test_db_settings()
     pgstorage = PostgresJsonStorage(db_settings)
     data = None
-    with db_connection() as con:
+    with db_connection(TEST_DB_NAME) as con:
         result = con.execute("select * from information_schema.tables where table_name='%s'"
                              % meta_table_name)
         data = result.fetchone()
@@ -85,14 +85,14 @@ def test_create_db():
     :return:
     """
     test_table_name = "test_db1"
-    db_settings = get_tainted_db_settings()
+    db_settings = get_test_db_settings()
     pgstorage = PostgresJsonStorage(db_settings)
     json_db = pgstorage.create_db(test_table_name)
     assert json_db
     assert isinstance(json_db, BaseJsonDb)
 
     data = None
-    with db_connection() as con:
+    with db_connection(TEST_DB_NAME) as con:
         # TODO also check for functions patch_json_data_notify and update_json_data_notify
         result = con.execute("select * from information_schema.tables where table_name='%s'"
                              % test_table_name)
@@ -108,11 +108,11 @@ def test_delete_db():
     :return:
     """
     test_table_name = "test_db2"
-    db_settings = get_tainted_db_settings()
+    db_settings = get_test_db_settings()
     pgstorage = PostgresJsonStorage(db_settings)
     json_db = pgstorage.create_db(test_table_name)
     assert json_db and isinstance(json_db, BaseJsonDb)
-    with db_connection() as con:
+    with db_connection(TEST_DB_NAME) as con:
         result = con.execute("select * from information_schema.tables where table_name='%s'"
                              % test_table_name)
         db_existed = True if result.fetchone() else False
@@ -137,7 +137,7 @@ def test_get_all_dbs():
     """
     test_table_name1 = "test_db3"
     test_table_name2 = "test_db4"
-    db_settings = get_tainted_db_settings()
+    db_settings = get_test_db_settings()
     pgstorage = PostgresJsonStorage(db_settings)
     with pgstorage:
         json_db1 = pgstorage.create_db(test_table_name1)
@@ -156,7 +156,7 @@ def test_simple_get_put_data_at_path():
     :return:
     """
     test_table_name1 = "test_db5"
-    db_settings = get_tainted_db_settings()
+    db_settings = get_test_db_settings()
     pgstorage = PostgresJsonStorage(db_settings)
     with pgstorage:
         json_db1 = pgstorage.create_db(test_table_name1)
@@ -197,7 +197,7 @@ def test_simple_get_put_data_at_path():
 
 def test_get_put_post_patch_delete():
     test_db_name = "test_db_fb"
-    db_settings = get_tainted_db_settings()
+    db_settings = get_test_db_settings()
     with PostgresJsonStorage(db_settings) as pg_storage:
         json_db = pg_storage.create_db(test_db_name)
         json_db.put("rest/saving-data/fireblog/users", {
@@ -240,7 +240,7 @@ def test_get_put_post_patch_delete():
 
 def test_get_db():
     test_db_name = "test_db_fb"
-    db_settings = get_tainted_db_settings()
+    db_settings = get_test_db_settings()
     with PostgresJsonStorage(db_settings) as pg_storage:
         # db exists
         assert pg_storage.get_db(test_db_name)
@@ -258,7 +258,7 @@ def test_change_notification():
     :return:
     """
     test_db_name = "test_db_fb"
-    db_settings = get_tainted_db_settings()
+    db_settings = get_test_db_settings()
     with PostgresJsonStorage(db_settings) as pg_storage:
         notifier = pg_storage.get_notifier(test_db_name, 'rest/saving-data/fireblog1/posts')
         message_stream = notifier.listen()
@@ -297,7 +297,7 @@ def test_change_notification2():
     :return:
     """
     test_db_name = "test_db_fb"
-    db_settings = get_tainted_db_settings()
+    db_settings = get_test_db_settings()
     with PostgresJsonStorage(db_settings) as pg_storage:
         notifier = pg_storage.get_notifier(test_db_name, 'rest/saving-data/fireblog2/posts')
         message_stream = notifier.listen()

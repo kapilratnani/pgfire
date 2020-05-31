@@ -4,24 +4,29 @@ import requests
 import sqlalchemy as sa
 from sqlalchemy import exc
 
-from pgfire.conf import config
-
 TEST_DB_NAME = 'test_rest_pgfire'
 
 
-def get_tainted_db_settings():
-    config['db']['db'] = TEST_DB_NAME
-    return config['db']
+def get_test_config():
+    return {
+        "db": {
+            "db": TEST_DB_NAME,
+            "username": "postgres",
+            "port": 5432,
+            "password": "123456",
+            "host": "localhost"
+        }
+    }
 
 
 @contextmanager
-def db_connection(db_name=TEST_DB_NAME):
-    # init module variables
-    db_props = get_tainted_db_settings()
-    db_host = db_props.get("host")
-    db_port = db_props.get("port")
-    db_user = db_props.get("username")
-    db_password = db_props.get("password")
+def db_connection():
+    db_props = get_test_config()
+    db_host = db_props.get("db").get("host")
+    db_port = db_props.get("db").get("port")
+    db_user = db_props.get("db").get("username")
+    db_password = db_props.get("db").get("password")
+    db_name = ''
 
     connection_string = 'postgresql+psycopg2://{}:{}@{}:{}/{}'.format(db_user,
                                                                       db_password,
@@ -37,7 +42,7 @@ def db_connection(db_name=TEST_DB_NAME):
 
 
 def setup_module(module):
-    with db_connection('') as conn:
+    with db_connection() as conn:
         conn = conn.execution_options(autocommit=False)
         conn.execute("ROLLBACK")
         try:
@@ -66,16 +71,19 @@ def stop_app():
     process.join()
 
 
+def __start_app():
+    from app import prepare_app
+    from aiohttp import web
+    app = prepare_app()
+    # override test config
+    app['config'] = get_test_config()
+    web.run_app(app, host="localhost", port=8666)
+
+
 def start_app():
     global process
     from multiprocessing import Process
     import time
-
-    def __start_app():
-        from app import prepare_app
-        from aiohttp import web
-        app = prepare_app()
-        web.run_app(app, host="localhost", port=8666)
 
     process = Process(target=__start_app)
     process.start()
@@ -92,7 +100,6 @@ def test_create_json_db():
     # # create the same db again
     # response = requests.post(url=url, json=data)
     # assert response.status_code == 400
-    # assert response.json().get('reason') == "db with the same name already exists"
 
 
 def test_get_put_post_delete_from_app():

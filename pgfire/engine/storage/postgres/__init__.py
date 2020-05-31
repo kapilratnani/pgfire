@@ -160,7 +160,7 @@ class PostgresJsonStorage(BaseJsonStorage):
         session = self.session
         cls = get_json_db_cls(db_name)
 
-        if path is None:
+        if not path:
             # return all data
             return self.__get_all_data(cls)
 

@@ -50,7 +50,7 @@ async def db_sse_get(request: web.Request):
         stream = notifier.listen()
         while True:
             if data:
-                response.send(json.dumps(data))
+                await response.send(json.dumps(data))
             data = next(stream)
             await asyncio.sleep(0)
 
