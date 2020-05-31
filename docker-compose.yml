@@ -1,0 +1,15 @@
+version: '3'
+services:
+  database:
+    image: "postgres"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=pgfire
+    volumes:
+      - database-data:/var/lib/pgdata/data/
+    ports:
+    - 5432:5432
+
+volumes:
+  database-data:
