@@ -80,3 +80,13 @@ Open two terminals
 | data: {"-M8eTWMpriELfoWJ0osW": {"body": "some blah blah...", "title": "a blog entry"}, "-M8eUE4Yt004TQHQkjpG": {"body": "some more blah blah...", "title": "another blog entry"}} |                                                                                                                                                                                                                                     |
 |                                                                                                                                                                                                   | curl --location --request POST 'http://localhost:8666/database/test_nosql_db/blog' \ --header 'Content-Type: application/json' \ --data-raw '{ 	"title":"another blog entry", 	"body": "some more blah blah..." }' |
 | data: {"event": "put", "path": "blog/-M8eYCk1LLlWH-SwIkXi", "data": {"body": "some more blah blah...", "title": "another blog entry"}}                                        |                                                                                                                                                                                                                                     |
+
+
+# Todo
+[ ] Add user and role based access control
+[ ] Make a distributable package
+[ ] make a cli to create and manage databases
+[ ] Demo app 
+[ ] Performance tests
+
+
