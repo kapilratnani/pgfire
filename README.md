@@ -88,5 +88,6 @@ Open two terminals
 - [ ] make a cli to create and manage databases
 - [ ] Demo app 
 - [ ] Performance tests
+- [ ] Support Transactions
 
 
